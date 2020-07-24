@@ -1,0 +1,41 @@
+version: "3.4"
+
+services:
+  sqldata:
+    image: mcr.microsoft.com/mssql/server:2017-latest
+
+  identity-api:
+    build:
+      context: .
+      dockerfile: src/Services/Identity/Identity.API/Dockerfile
+    depends_on:
+      - sqldata
+    networks:
+      default:
+        aliases: 
+          - 127.0.0.1.xip.io
+
+  ordering-api:
+    build:
+      context: .
+      dockerfile: src/Services/Ordering/Ordering.API/Dockerfile
+    depends_on:
+      - sqldata
+      - identity-api
+
+  ordering-signalrhub:
+    build:
+      context: .
+      dockerfile: src/Services/Ordering/Ordering.SignalrHub/Dockerfile
+    depends_on:
+      - sqldata
+      - identity-api
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: src/Web/Dashboard/Dockerfile
+
+networks:
+  default:
+    driver: bridge

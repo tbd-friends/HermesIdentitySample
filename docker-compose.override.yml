@@ -1,0 +1,52 @@
+version: "3.4"
+
+services:
+  sqldata:
+    environment:
+      - SA_PASSWORD=Pass@word
+      - ACCEPT_EULA=Y
+    ports:
+      - "5433:1433"
+    volumes:
+      - hermes-sqldata:/var/opt/mssql
+
+  identity-api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+      - ConnectionString=${HERMES_AZURE_IDENTITY_DB:-Server=sqldata;Database=Hermes.IdentityDb;User Id=sa;Password=Pass@word}
+      - OrderingApiClient=http://${HERMES_EXTERNAL_DNS_NAME_OR_IP}:5002
+      - DashboardClient=http://${HERMES_EXTERNAL_DNS_NAME_OR_IP}:5003
+      - OrchestratorType=${ORCHESTRATOR_TYPE}
+    ports:
+      - "5001:80"
+
+  ordering-api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+      - ConnectionString=${HERMES_AZURE_ORDERING_DB:-Server=sqldata;Database=Hermes.OrderingDb;User Id=sa;Password=Pass@word}
+      - IdentityUrl=http://identity-api
+    ports:
+      - "5002:80"
+
+  ordering-signalrhub:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+      - IdentityUrl=http://identity-api
+    ports:
+      - "5102:80"
+
+  dashboard:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+      - IdentityUrl=http://${HERMES_EXTERNAL_DNS_NAME_OR_IP}:5001
+      #- IdentityUrl=http://identity-api
+    ports:
+      - "5003:80"
+
+volumes:
+  hermes-sqldata:
+    external: false
